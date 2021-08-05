@@ -1,0 +1,24 @@
+{
+    "name": "csv-fetch",
+    "description": "Download a list of URLs from a CSV file.",
+    "version": "1.0.0",
+    "author": "Max Harlow <contact@maxharlow.com> (https://maxharlow.com/)",
+    "license": "Apache-2.0",
+    "type": "module",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/maxharlow/csv-fetch.git"
+    },
+    "dependencies": {
+        "axios": "0.21.x",
+        "axios-rate-limit": "1.3.x",
+        "axios-retry": "3.1.x",
+        "fs-extra": "10.0.x",
+        "progress": "2.0.x",
+        "scramjet": "4.35.x",
+        "yargs": "17.1.x"
+    },
+    "bin": {
+        "csv-fetch": "./bin.js"
+    }
+}
