@@ -4,7 +4,7 @@ import Axios from 'axios'
 import AxiosRetry from 'axios-retry'
 import AxiosRateLimit from 'axios-rate-limit'
 
-function fetcher(urlColumn, nameColumn, depository, limit, retries, check, verbose, alert) {
+function fetcher(urlColumn, nameColumn, depository, headers, limit, retries, check, verbose, alert) {
     const timeout = 45 * 1000
     const toErrorMessage = e => {
         const locationName = e.config.url
@@ -54,6 +54,7 @@ function fetcher(urlColumn, nameColumn, depository, limit, retries, check, verbo
             if (verbose) alert(`Requesting: ${url}`)
             const response = await instance({
                 url,
+                headers: headers ? Object.fromEntries(headers.map(header => header.split(/: ?/))) : {},
                 responseType: 'arraybuffer'
             })
             await FSExtra.writeFile(`${depository}/${key}`, response.data)
@@ -72,9 +73,9 @@ function length(filename) {
     return source(filename).reduce(a => a + 1, 0)
 }
 
-async function run(filename, urlColumn, nameColumn, depository, limit, retries, check, verbose, alert) {
+async function run(filename, urlColumn, nameColumn, depository, headers, limit, retries, check, verbose, alert) {
     await FSExtra.ensureDir(depository)
-    const fetch = fetcher(urlColumn, nameColumn, depository, limit, retries, check, verbose, alert)
+    const fetch = fetcher(urlColumn, nameColumn, depository, headers, limit, retries, check, verbose, alert)
     return source(filename).each(fetch)
 }
 

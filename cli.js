@@ -25,6 +25,7 @@ async function setup() {
     const instructions = Yargs(Process.argv.slice(2))
         .usage('Usage: csv-fetch <url-column> <name-column> <depository> <filename>')
         .wrap(null)
+        .option('h', { alias: 'header', type: 'string', array: true, nargs: 1, describe: 'Set a header to be sent with the request' })
         .option('l', { alias: 'limit', type: 'number', nargs: 1, describe: 'Limit the number of requests made per second' })
         .option('r', { alias: 'retries', type: 'number', nargs: 1, describe: 'Number of times a request should be retried', default: 5 })
         .option('c', { alias: 'check', type: 'boolean', describe: 'Check whether file has already been downloaded, and skip if so', default: false })
@@ -35,6 +36,7 @@ async function setup() {
     try {
         const {
             _: [urlColumn, nameColumn, depository, filename],
+            header: headers,
             limit,
             retries,
             check,
@@ -43,9 +45,12 @@ async function setup() {
         if (filename === '-') throw new Error('reading from standard input not supported')
         const exists = await FSExtra.pathExists(filename)
         if (!exists) throw new Error(`${filename}: could not find file`)
+        if (headers) headers.forEach(header => {
+            if (!header.includes(':')) throw new Error(`"${header}" header is not valid`)
+        })
         const total = await csvFetch.length(filename)
         console.error('Starting up...')
-        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, limit, retries, check, verbose, alert)
+        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, headers, limit, retries, check, verbose, alert)
         await process
             .each(ticker('Working...', total))
             .whenEnd()
