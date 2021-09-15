@@ -51,10 +51,11 @@ function fetcher(urlColumn, nameColumn, depository, headers, limit, retries, che
             }
         }
         try {
-            if (verbose) alert(`Requesting: ${url}`)
+            const headersValues = headers ? Object.fromEntries(headers.map(header => header.split(/: ?/))) : {}
+            if (verbose) alert(`Requesting: ${url}` + (headersValues ? ' ' + JSON.stringify(headersValues, null, 2) : ''))
             const response = await instance({
                 url,
-                headers: headers ? Object.fromEntries(headers.map(header => header.split(/: ?/))) : {},
+                headers: headersValues,
                 responseType: 'arraybuffer'
             })
             await FSExtra.writeFile(`${depository}/${key}`, response.data)
