@@ -25,6 +25,7 @@ async function setup() {
     const instructions = Yargs(Process.argv.slice(2))
         .usage('Usage: csv-fetch <url-column> <name-column> <depository> <filename>')
         .wrap(null)
+        .option('s', { alias: 'suffix', type: 'string', describe: 'A suffix to add to the name of each file, such as an extension' })
         .option('h', { alias: 'header', type: 'string', array: true, nargs: 1, describe: 'Set a header to be sent with the request' })
         .option('l', { alias: 'limit', type: 'number', nargs: 1, describe: 'Limit the number of requests made per second' })
         .option('r', { alias: 'retries', type: 'number', nargs: 1, describe: 'Number of times a request should be retried', default: 5 })
@@ -36,6 +37,7 @@ async function setup() {
     try {
         const {
             _: [urlColumn, nameColumn, depository, filename],
+            suffix,
             header: headers,
             limit,
             retries,
@@ -50,7 +52,7 @@ async function setup() {
         })
         const total = await csvFetch.length(filename)
         console.error('Starting up...')
-        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, headers, limit, retries, check, verbose, alert)
+        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, suffix, headers, limit, retries, check, verbose, alert)
         await process
             .each(ticker('Working...', total))
             .whenEnd()
