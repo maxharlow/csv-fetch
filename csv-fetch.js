@@ -62,7 +62,7 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retr
             await FSExtra.writeFile(`${depository}/${filename}`, response.data)
         }
         catch (e) {
-            alert(toErrorMessage(e))
+            alert(`Error: ${e.message}`)
         }
     }
 }
