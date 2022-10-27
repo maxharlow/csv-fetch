@@ -33,17 +33,17 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retr
         perMilliseconds: 1 * 1000
     })
     return async row => {
-        const key = row[nameColumn]
-        if (!key) {
-            alert('Key column is empty!')
+        const name = row.data[nameColumn]
+        if (!name) {
+            alert(`Error on row ${row.line}: Name column is empty!`)
             return
         }
-        const url = row[urlColumn]
+        const url = row.data[urlColumn]
         if (!url) {
-            alert('URL column is empty!')
+            alert(`Error on row ${row.line}: URL column is empty!`)
             return
         }
-        const filename = key + (suffix || '')
+        const filename = name + (suffix || '')
         if (check) {
             const exists = await FSExtra.pathExists(`${depository}/${filename}`)
             if (exists && verbose) {
@@ -62,13 +62,19 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retr
             await FSExtra.writeFile(`${depository}/${filename}`, response.data)
         }
         catch (e) {
-            alert(`Error: ${e.message}`)
+            alert(`Error on row ${row.line}: ${e.message}`)
         }
     }
 }
 
 function source(filename) {
-    return Scramjet.StringStream.from(FSExtra.createReadStream(filename)).CSVParse({ header: true })
+    let line = 1
+    return Scramjet.StringStream.from(FSExtra.createReadStream(filename)).CSVParse({ header: true }).map(data => {
+        return {
+            line: line++,
+            data
+        }
+    })
 }
 
 function length(filename) {
