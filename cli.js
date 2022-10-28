@@ -59,7 +59,7 @@ async function setup() {
         console.error('Done!')
     }
     catch (e) {
-        console.error(e.message)
+        instructions.argv.verbose ? console.error(e.stack) : console.error(e.message)
         Process.exit(1)
     }
 
