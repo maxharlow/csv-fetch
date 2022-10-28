@@ -32,6 +32,7 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retr
         maxRequests: limit, // so limit is number of requests per second
         perMilliseconds: 1 * 1000
     })
+    const stringifyObject = object => Object.entries(object).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(' ')
     return async row => {
         const name = row.data[nameColumn]
         if (!name) {
@@ -53,7 +54,7 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retr
         }
         try {
             const headersValues = headers ? Object.fromEntries(headers.map(header => header.split(/: ?/))) : {}
-            if (verbose) alert(`Requesting: ${url}` + (headersValues ? ' ' + JSON.stringify(headersValues, null, 2) : ''))
+            if (verbose) alert(`Requesting: ${url}` + (headersValues ? ' ' + stringifyObject(headersValues) : ''))
             const response = await instance({
                 url,
                 headers: headersValues,
