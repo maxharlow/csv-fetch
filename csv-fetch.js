@@ -1,5 +1,6 @@
 import FSExtra from 'fs-extra'
 import Scramjet from 'scramjet'
+import Papaparse from 'papaparse'
 import Axios from 'axios'
 import AxiosRetry from 'axios-retry'
 import AxiosRateLimit from 'axios-rate-limit'
@@ -69,8 +70,9 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retr
 }
 
 function source(filename) {
+    const origin = FSExtra.createReadStream(filename).pipe(Papaparse.parse(Papaparse.NODE_STREAM_INPUT, { header: true }))
     let line = 1
-    return Scramjet.StringStream.from(FSExtra.createReadStream(filename)).CSVParse({ header: true }).map(data => {
+    return Scramjet.DataStream.from(origin).map(data => {
         return {
             line: line++,
             data
