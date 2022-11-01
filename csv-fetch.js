@@ -5,13 +5,12 @@ import Axios from 'axios'
 import AxiosRetry from 'axios-retry'
 import AxiosRateLimit from 'axios-rate-limit'
 
-function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retries, check, verbose, alert) {
+function requestor(limit, retries, alert) {
     const timeout = 45 * 1000
     const toErrorMessage = e => {
-        const locationName = e.config.url
-        if (e.response) return `Received code ${e.response.status}: ${locationName}` // response recieved, but non-2xx
-        if (e.code === 'ECONNABORTED') return `Timed out after ${timeout / 1000}ms: ${locationName}` // request timed out
-        if (e.code) return `Error ${e.code}: ${locationName}` // request failed, with error code
+        if (e.response) return `received code ${e.response.status}` // response recieved, but non-2xx
+        if (e.code === 'ECONNABORTED') return `timed out after ${timeout / 1000}ms` // request timed out
+        if (e.code) return `received ${e.code}` // request failed, with error code
         return e.message // request not made
     }
     const instance = Axios.create({ timeout })
@@ -24,8 +23,16 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retr
         retryDelay: (number, e) => {
             const message = toErrorMessage(e)
             const attempt = number > 0 && number <= retries && retries > 1 ? ' (retrying' + (number > 1 ? `, attempt ${number}` : '') + '...)' : ''
-            if (number === 1) alert(`${message}${attempt}`)
-            else alert(`  → ${message}${attempt}`)
+            if (number === 1) alert({
+                destination: e.config.filename,
+                source: e.config.url,
+                message: `${message}${attempt}`
+            })
+            else alert({
+                destination: e.config.filename,
+                source: e.config.url,
+                message: `${message}${attempt}`
+            })
             return 5 * 1000
         }
     })
@@ -33,38 +40,73 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retr
         maxRequests: limit, // so limit is number of requests per second
         perMilliseconds: 1 * 1000
     })
-    const stringifyObject = object => Object.entries(object).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(' ')
+    return (filename, request) => {
+        instance.interceptors.request.use(config => {
+            return { ...config, headers: request.headers } // workaround bug where headers disappear on retry
+        })
+        return instance({ ...request, filename })
+    }
+}
+
+function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retries, check, verbose, alert) {
+    const request = requestor(limit, retries, alert)
     return async row => {
         const name = row.data[nameColumn]
         if (!name) {
-            alert(`Error on row ${row.line}: Name column is empty!`)
+            alert({
+                source: `Line ${row.line}`,
+                message: `name column is empty`,
+                importance: 'error'
+            })
             return
         }
         const url = row.data[urlColumn]
         if (!url) {
-            alert(`Error on row ${row.line}: URL column is empty!`)
+            alert({
+                source: `Line ${row.line}`,
+                message: `URL column is empty`,
+                importance: 'error'
+            })
             return
         }
         const filename = name + (suffix || '')
         if (check) {
             const exists = await FSExtra.pathExists(`${depository}/${filename}`)
             if (exists && verbose) {
-                alert(`Exists [${filename}]: ${url}`)
+                alert({
+                    destination: filename,
+                    source: url,
+                    message: 'exists'
+                })
                 return
             }
         }
         try {
             const headersValues = headers ? Object.fromEntries(headers.map(header => header.split(/: ?/))) : {}
-            if (verbose) alert(`Requesting: ${url}` + (headersValues ? ' ' + stringifyObject(headersValues) : ''))
-            const response = await instance({
+            if (verbose) alert({
+                destination: filename,
+                source: url,
+                message: 'requesting...'
+            })
+            const response = await request(filename, {
                 url,
                 headers: headersValues,
                 responseType: 'arraybuffer'
             })
+            if (verbose) alert({
+                destination: filename,
+                source: url,
+                message: 'done'
+            })
             await FSExtra.writeFile(`${depository}/${filename}`, response.data)
         }
         catch (e) {
-            alert(`Error on row ${row.line}: ${e.message}`)
+            alert({
+                destination: filename,
+                source: url,
+                message: e.message.toLowerCase(),
+                importance: 'error'
+            })
         }
     }
 }

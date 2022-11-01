@@ -1,25 +1,8 @@
-import Readline from 'readline'
 import FSExtra from 'fs-extra'
 import Process from 'process'
 import Yargs from 'yargs'
-import Progress from 'progress'
 import csvFetch from './csv-fetch.js'
-
-function alert(message) {
-    Readline.clearLine(process.stderr)
-    Readline.cursorTo(process.stderr, 0)
-    console.error(message)
-}
-
-function ticker(text, total) {
-    const progress = new Progress(text + ' |:bar| :percent / :etas left', {
-        total,
-        width: Infinity,
-        complete: '█',
-        incomplete: ' '
-    })
-    return () => progress.tick()
-}
+import cliRenderer from './cli-renderer.js'
 
 async function setup() {
     const instructions = Yargs(Process.argv.slice(2))
@@ -34,32 +17,34 @@ async function setup() {
         .help('?').alias('?', 'help')
         .version().alias('v', 'version')
     if (instructions.argv._.length === 0) instructions.showHelp().exit(0)
+    const {
+        _: [urlColumn, nameColumn, depository, filename],
+        suffix,
+        header: headers,
+        limit,
+        retries,
+        check,
+        verbose
+    } = instructions.argv
+    if (filename === '-') throw new Error('reading from standard input not supported')
+    const exists = await FSExtra.pathExists(filename)
+    if (!exists) throw new Error(`${filename}: could not find file`)
+    if (headers) headers.forEach(header => {
+        if (!header.includes(':')) throw new Error(`"${header}" header is not valid`)
+    })
+    const total = await csvFetch.length(filename)
+    console.error('Starting up...')
+    const { alert, progress, finalise } = cliRenderer(instructions.argv.verbose)
     try {
-        const {
-            _: [urlColumn, nameColumn, depository, filename],
-            suffix,
-            header: headers,
-            limit,
-            retries,
-            check,
-            verbose
-        } = instructions.argv
-        if (filename === '-') throw new Error('reading from standard input not supported')
-        const exists = await FSExtra.pathExists(filename)
-        if (!exists) throw new Error(`${filename}: could not find file`)
-        if (headers) headers.forEach(header => {
-            if (!header.includes(':')) throw new Error(`"${header}" header is not valid`)
-        })
-        const total = await csvFetch.length(filename)
-        console.error('Starting up...')
         const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, suffix, headers, limit, retries, check, verbose, alert)
         await process
-            .each(ticker('Working...', total))
+            .each(progress('Working...', total))
             .whenEnd()
-        console.error('Done!')
+        await finalise('complete')
     }
     catch (e) {
-        instructions.argv.verbose ? console.error(e.stack) : console.error(e.message)
+        await finalise('error')
+        console.error(instructions.argv.verbose ? e.stack : e.message)
         Process.exit(1)
     }
 
