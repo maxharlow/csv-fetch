@@ -81,33 +81,23 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retr
                 return
             }
         }
-        try {
-            const headersValues = headers ? Object.fromEntries(headers.map(header => header.split(/: ?/))) : {}
-            if (verbose) alert({
-                destination: filename,
-                source: url,
-                message: 'requesting...'
-            })
-            const response = await request(filename, {
-                url,
-                headers: headersValues,
-                responseType: 'arraybuffer'
-            })
-            if (verbose) alert({
-                destination: filename,
-                source: url,
-                message: 'done'
-            })
-            await FSExtra.writeFile(`${depository}/${filename}`, response.data)
-        }
-        catch (e) {
-            alert({
-                destination: filename,
-                source: url,
-                message: e.message.toLowerCase(),
-                importance: 'error'
-            })
-        }
+        const headersValues = headers ? Object.fromEntries(headers.map(header => header.split(/: ?/))) : {}
+        if (verbose) alert({
+            destination: filename,
+            source: url,
+            message: 'requesting...'
+        })
+        const response = await request(filename, {
+            url,
+            headers: headersValues,
+            responseType: 'arraybuffer'
+        })
+        if (verbose) alert({
+            destination: filename,
+            source: url,
+            message: 'done'
+        })
+        await FSExtra.writeFile(`${depository}/${filename}`, response.data)
     }
 }
 
