@@ -6,10 +6,11 @@ import cliRenderer from './cli-renderer.js'
 
 async function setup() {
     const instructions = Yargs(Process.argv.slice(2))
+        .parserConfiguration({ 'flatten-duplicate-arrays': false })
         .usage('Usage: csv-fetch <url-column> <name-column> <depository> <filename>')
         .wrap(null)
         .option('s', { alias: 'suffix', type: 'string', describe: 'A suffix to add to the name of each file, such as an extension' })
-        .option('h', { alias: 'header', type: 'string', array: true, nargs: 1, describe: 'Set a header to be sent with the request' })
+        .option('h', { alias: 'headers', type: 'string', array: true, describe: 'A space-separated list of headers to be sent with the requests' })
         .option('l', { alias: 'limit', type: 'number', nargs: 1, describe: 'Limit the number of requests made per second' })
         .option('r', { alias: 'retries', type: 'number', nargs: 1, describe: 'Number of times a request should be retried', default: 5 })
         .option('c', { alias: 'check', type: 'boolean', describe: 'Check whether file has already been downloaded, and skip if so', default: false })
@@ -20,7 +21,7 @@ async function setup() {
     const {
         _: [urlColumn, nameColumn, depository, filename],
         suffix,
-        header: headers,
+        headers,
         limit,
         retries,
         check,
@@ -29,14 +30,17 @@ async function setup() {
     if (filename === '-') throw new Error('reading from standard input not supported')
     const exists = await FSExtra.pathExists(filename)
     if (!exists) throw new Error(`${filename}: could not find file`)
-    if (headers) headers.forEach(header => {
-        if (!header.includes(':')) throw new Error(`"${header}" header is not valid`)
+    const headerlist = headers && !Array.isArray(headers[0]) ? [headers] : headers
+    if (headerlist) headerlist.forEach(headerset => {
+        headerset.forEach(header => {
+            if (!header.includes(':')) throw new Error(`"${header}" header is not valid`)
+        })
     })
     const total = await csvFetch.length(filename)
     console.error('Starting up...')
     const { alert, progress, finalise } = cliRenderer(instructions.argv.verbose)
     try {
-        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, suffix, headers, limit, retries, check, verbose, alert)
+        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, check, verbose, alert)
         await process
             .each(progress('Working...', total))
             .whenEnd()

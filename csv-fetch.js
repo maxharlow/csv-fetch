@@ -5,6 +5,11 @@ import Axios from 'axios'
 import AxiosRetry from 'axios-retry'
 import AxiosRateLimit from 'axios-rate-limit'
 
+function stringifyObject(object) {
+    if (!object) return ''
+    return ' [' + Object.entries(object).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(', ') + ']'
+}
+
 function requestor(limit, retries, alert) {
     const timeout = 45 * 1000
     const toErrorMessage = e => {
@@ -25,12 +30,12 @@ function requestor(limit, retries, alert) {
             const attempt = number > 0 && number <= retries && retries > 1 ? ' (retrying' + (number > 1 ? `, attempt ${number}` : '') + '...)' : ''
             if (number === 1) alert({
                 destination: e.config.filename,
-                source: e.config.url,
-                message: `${message}${attempt}`
+                message: `${message}${attempt}`,
+                source: e.config.url + stringifyObject(e.config.passthrough.headers),
             })
             else alert({
                 destination: e.config.filename,
-                source: e.config.url,
+                source: e.config.url + stringifyObject(e.config.passthrough.headers),
                 message: `${message}${attempt}`
             })
             return 5 * 1000
@@ -48,7 +53,7 @@ function requestor(limit, retries, alert) {
     }
 }
 
-function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retries, check, verbose, alert) {
+function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, check, verbose, alert) {
     const request = requestor(limit, retries, alert)
     return async row => {
         const name = row.data[nameColumn]
@@ -81,20 +86,22 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retr
                 return
             }
         }
-        const headersValues = headers ? Object.fromEntries(headers.map(header => header.split(/: ?/))) : {}
+        const headers = headerlist ? headerlist.map(headerset => Object.fromEntries(headerset.map(header => header.split(/: ?/)))) : []
+        const headersRotated = headers ? headers[row.line % headers.length] : {}
         if (verbose) alert({
             destination: filename,
-            source: url,
+            source: url + stringifyObject(headersRotated),
             message: 'requesting...'
         })
         const response = await request(filename, {
             url,
-            headers: headersValues,
-            responseType: 'arraybuffer'
+            headers: headersRotated,
+            responseType: 'arraybuffer',
+            passthrough: { headers: headersRotated }
         })
         if (verbose) alert({
             destination: filename,
-            source: url,
+            source: url + stringifyObject(headersRotated),
             message: 'done'
         })
         await FSExtra.writeFile(`${depository}/${filename}`, response.data)
