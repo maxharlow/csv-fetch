@@ -86,25 +86,35 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, limit, r
                 return
             }
         }
-        const headers = headerlist ? headerlist.map(headerset => Object.fromEntries(headerset.map(header => header.split(/: ?/)))) : []
-        const headersRotated = headers ? headers[row.line % headers.length] : {}
-        if (verbose) alert({
-            destination: filename,
-            source: url + stringifyObject(headersRotated),
-            message: 'requesting...'
-        })
-        const response = await request(filename, {
-            url,
-            headers: headersRotated,
-            responseType: 'arraybuffer',
-            passthrough: { headers: headersRotated }
-        })
-        if (verbose) alert({
-            destination: filename,
-            source: url + stringifyObject(headersRotated),
-            message: 'done'
-        })
-        await FSExtra.writeFile(`${depository}/${filename}`, response.data)
+        try {
+            const headers = headerlist ? headerlist.map(headerset => Object.fromEntries(headerset.map(header => header.split(/: ?/)))) : []
+            const headersRotated = headers ? headers[row.line % headers.length] : {}
+            if (verbose) alert({
+                destination: filename,
+                source: url + stringifyObject(headersRotated),
+                message: 'requesting...'
+            })
+            const response = await request(filename, {
+                url,
+                headers: headersRotated,
+                responseType: 'arraybuffer',
+                passthrough: { headers: headersRotated }
+            })
+            if (verbose) alert({
+                destination: filename,
+                source: url + stringifyObject(headersRotated),
+                message: 'done'
+            })
+            await FSExtra.writeFile(`${depository}/${filename}`, response.data)
+        }
+        catch (e) {
+            alert({
+                destination: filename,
+                source: url,
+                message: e.message.toLowerCase(),
+                importance: 'error'
+            })
+        }
     }
 }
 
