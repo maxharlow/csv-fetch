@@ -54,11 +54,8 @@ function predict(start, timings, left) {
 function truncate(space, text) {
     const textWidth = SimpleWCSWidth.wcswidth(text)
     if (textWidth <= space) return text
-    const tail = (width, text) => {
-        const letters = text.split('').reverse()
-        return '…' + letters.reduce((a, character) => SimpleWCSWidth.wcswidth(a) >= width - 1 ? a : character + a, '')
-    }
-    return tail(space, text)
+    const letters = text.split('').reverse()
+    return '…' + letters.reduce((a, character) => SimpleWCSWidth.wcswidth(a) >= space - 1 ? a : character + a, '')
 }
 
 function draw(linesDrawn) {
