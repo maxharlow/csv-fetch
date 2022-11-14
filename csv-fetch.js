@@ -7,7 +7,7 @@ import AxiosRateLimit from 'axios-rate-limit'
 
 function stringifyObject(object) {
     if (!object) return ''
-    return ' [' + Object.entries(object).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(', ') + ']'
+    return ' {' + Object.entries(object).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(', ') + '}'
 }
 
 function requestor(limit, retries, alert) {
