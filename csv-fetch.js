@@ -45,12 +45,7 @@ function requestor(limit, retries, alert) {
         maxRequests: limit, // so limit is number of requests per second
         perMilliseconds: 1 * 1000
     })
-    return (filename, request) => {
-        instance.interceptors.request.use(config => {
-            return { ...config, headers: request.headers } // workaround bug where headers disappear on retry
-        })
-        return instance({ ...request, filename })
-    }
+    return (filename, request) => instance({ ...request, filename })
 }
 
 function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, check, verbose, alert) {
