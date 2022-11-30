@@ -84,6 +84,8 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
             })
             return
         }
+        const headerslist = headerlist ? headerlist.map(headerset => Object.fromEntries(headerset.map(header => header.split(/: ?/)))) : []
+        const headers = headerslist ? headerslist[row.line % headerslist.length] : {}
         const filename = name + (suffix || '')
         const existingFile = checkFile ? await FSExtra.pathExists(`${depository}/${filename}`) : false
         const existingCached = checkCache && !existingFile ? await cache.getResponse.get({ name }) : false
@@ -92,28 +94,26 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
         if (existing && verbose) {
             alert({
                 destination: filename,
-                source: url,
+                source: url + stringifyObject(headers),
                 message: 'exists'
             })
             return
         }
         try {
-            const headers = headerlist ? headerlist.map(headerset => Object.fromEntries(headerset.map(header => header.split(/: ?/)))) : []
-            const headersRotated = headers ? headers[row.line % headers.length] : {}
             if (verbose) alert({
                 destination: filename,
-                source: url + stringifyObject(headersRotated),
+                source: url + stringifyObject(headers),
                 message: 'requesting...'
             })
             const response = await request(filename, {
                 url,
-                headers: headersRotated,
+                headers,
                 responseType: 'arraybuffer',
-                passthrough: { headers: headersRotated }
+                passthrough: { headers }
             })
             if (verbose) alert({
                 destination: filename,
-                source: url + stringifyObject(headersRotated),
+                source: url + stringifyObject(headers),
                 message: 'done'
             })
             await FSExtra.writeFile(`${depository}/${filename}`, response.data)
@@ -122,7 +122,7 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
         catch (e) {
             alert({
                 destination: filename,
-                source: url,
+                source: url + stringifyObject(headers),
                 message: e.message.toLowerCase(),
                 importance: 'error'
             })
