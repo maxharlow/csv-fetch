@@ -13,7 +13,8 @@ async function setup() {
         .option('h', { alias: 'headers', type: 'string', array: true, describe: 'A space-separated list of headers to be sent with the requests' })
         .option('l', { alias: 'limit', type: 'number', nargs: 1, describe: 'Limit the number of requests made per second' })
         .option('r', { alias: 'retries', type: 'number', nargs: 1, describe: 'Number of times a request should be retried', default: 5 })
-        .option('c', { alias: 'check', type: 'boolean', describe: 'Check whether file has already been downloaded, and skip if so', default: false })
+        .option('c', { alias: 'check-file', type: 'boolean', describe: 'Check for an existing file, and skip if so', default: false })
+        .option('C', { alias: 'check-cache', type: 'boolean', describe: 'Check a fast cache for whether it includes the file, and skip if so', default: false })
         .option('V', { alias: 'verbose', type: 'boolean', describe: 'Print every request made', default: false })
         .help('?').alias('?', 'help')
         .version().alias('v', 'version')
@@ -24,7 +25,8 @@ async function setup() {
         headers,
         limit,
         retries,
-        check,
+        checkFile,
+        checkCache,
         verbose
     } = instructions.argv
     if (filename === '-') throw new Error('reading from standard input not supported')
@@ -40,7 +42,7 @@ async function setup() {
     console.error('Starting up...')
     const { alert, progress, finalise } = cliRenderer(instructions.argv.verbose)
     try {
-        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, check, verbose, alert)
+        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, checkFile, checkCache, verbose, alert)
         await process
             .each(progress('Working...', total))
             .whenEnd()

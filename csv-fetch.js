@@ -4,6 +4,7 @@ import Papaparse from 'papaparse'
 import Axios from 'axios'
 import AxiosRetry from 'axios-retry'
 import AxiosRateLimit from 'axios-rate-limit'
+import BetterSqlite3 from 'better-sqlite3'
 
 function stringifyObject(object) {
     if (!object) return ''
@@ -48,8 +49,22 @@ function requestor(limit, retries, alert) {
     return (filename, request) => instance({ ...request, filename })
 }
 
-function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, check, verbose, alert) {
+async function caching() {
+    const databaseExists = await FSExtra.pathExists('.csv-fetch-cache')
+    const database = new BetterSqlite3('.csv-fetch-cache')
+    if (!databaseExists) {
+        database.prepare('create table responses (name)').run()
+        database.prepare('create index responses_names on responses (name)').run()
+    }
+    return {
+        getResponse: database.prepare('select name from responses where name = @name'),
+        addResponse: database.prepare('insert into responses (name) values (@name)')
+    }
+}
+
+async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, checkFile, checkCache, verbose, alert) {
     const request = requestor(limit, retries, alert)
+    const cache = checkCache ? await caching() : null
     return async row => {
         const name = row.data[nameColumn]
         if (!name) {
@@ -70,16 +85,17 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, limit, r
             return
         }
         const filename = name + (suffix || '')
-        if (check) {
-            const exists = await FSExtra.pathExists(`${depository}/${filename}`)
-            if (exists && verbose) {
-                alert({
-                    destination: filename,
-                    source: url,
-                    message: 'exists'
-                })
-                return
-            }
+        const existingFile = checkFile ? await FSExtra.pathExists(`${depository}/${filename}`) : false
+        const existingCached = checkCache && !existingFile ? await cache.getResponse.get({ name }) : false
+        if (checkCache && existingFile && !existingCached) cache.addResponse.run({ name })
+        const existing = existingFile || existingCached
+        if (existing && verbose) {
+            alert({
+                destination: filename,
+                source: url,
+                message: 'exists'
+            })
+            return
         }
         try {
             const headers = headerlist ? headerlist.map(headerset => Object.fromEntries(headerset.map(header => header.split(/: ?/)))) : []
@@ -101,6 +117,7 @@ function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, limit, r
                 message: 'done'
             })
             await FSExtra.writeFile(`${depository}/${filename}`, response.data)
+            if (checkCache) cache.addResponse.run({ name })
         }
         catch (e) {
             alert({
@@ -128,9 +145,9 @@ function length(filename) {
     return source(filename).reduce(a => a + 1, 0)
 }
 
-async function run(filename, urlColumn, nameColumn, depository, suffix, headers, limit, retries, check, verbose, alert) {
+async function run(filename, urlColumn, nameColumn, depository, suffix, headers, limit, retries, checkFile, checkCache, verbose, alert) {
     await FSExtra.ensureDir(depository)
-    const fetch = fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retries, check, verbose, alert)
+    const fetch = await fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retries, checkFile, checkCache, verbose, alert)
     return source(filename).each(fetch)
 }
 
