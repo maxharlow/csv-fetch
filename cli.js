@@ -38,8 +38,8 @@ async function setup() {
             if (!header.includes(':')) throw new Error(`"${header}" header is not valid`)
         })
     })
-    const total = await csvFetch.length(filename)
     console.error('Starting up...')
+    const total = await csvFetch.length(filename)
     const { alert, progress, finalise } = cliRenderer(instructions.argv.verbose)
     try {
         const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, checkFile, checkCache, verbose, alert)
