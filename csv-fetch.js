@@ -91,8 +91,8 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
         const existingCached = checkCache && !existingFile ? await cache.getResponse.get({ name }) : false
         if (checkCache && existingFile && !existingCached) cache.addResponse.run({ name })
         const existing = existingFile || existingCached
-        if (existing && verbose) {
-            alert({
+        if (existing) {
+            if (verbose) alert({
                 destination: filename,
                 source: url + stringifyObject(headers),
                 message: 'exists'
