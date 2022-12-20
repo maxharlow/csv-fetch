@@ -62,7 +62,7 @@ async function caching() {
     }
 }
 
-async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, checkFile, checkCache, verbose, alert) {
+async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, checkFile, checkCache, alert) {
     const request = requestor(limit, retries, alert)
     const cache = checkCache ? await caching() : null
     return async row => {
@@ -92,15 +92,15 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
         if (checkCache && existingFile && !existingCached) cache.addResponse.run({ name })
         const existing = existingFile || existingCached
         if (existing) {
-            if (verbose) alert({
+            alert({
                 destination: filename,
                 source: url + stringifyObject(headers),
                 message: 'exists'
             })
-            return
+            return true
         }
         try {
-            if (verbose) alert({
+            alert({
                 destination: filename,
                 source: url + stringifyObject(headers),
                 message: 'requesting...'
@@ -111,7 +111,7 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
                 responseType: 'arraybuffer',
                 passthrough: { headers }
             })
-            if (verbose) alert({
+            alert({
                 destination: filename,
                 source: url + stringifyObject(headers),
                 message: 'done'
@@ -145,9 +145,9 @@ function length(filename) {
     return source(filename).reduce(a => a + 1, 0)
 }
 
-async function run(filename, urlColumn, nameColumn, depository, suffix, headers, limit, retries, checkFile, checkCache, verbose, alert) {
+async function run(filename, urlColumn, nameColumn, depository, suffix, headers, limit, retries, checkFile, checkCache, alert) {
     await FSExtra.ensureDir(depository)
-    const fetch = await fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retries, checkFile, checkCache, verbose, alert)
+    const fetch = await fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retries, checkFile, checkCache, alert)
     return source(filename).each(fetch)
 }
 

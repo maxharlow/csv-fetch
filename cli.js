@@ -42,7 +42,7 @@ async function setup() {
     const total = await csvFetch.length(filename)
     const { alert, progress, finalise } = cliRenderer(instructions.argv.verbose)
     try {
-        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, checkFile, checkCache, verbose, alert)
+        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, checkFile, checkCache, alert)
         await process
             .each(progress('Working...', total))
             .whenEnd()
