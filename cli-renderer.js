@@ -5,7 +5,6 @@ import * as Luxon from 'luxon'
 import SimpleWCSWidth from 'simple-wcswidth'
 
 const events = new Events.EventEmitter()
-const beginning = new Date()
 let isDirty = true
 let isAlternate = false
 let finalisation = null

@@ -6,9 +6,10 @@ import AxiosRetry from 'axios-retry'
 import AxiosRateLimit from 'axios-rate-limit'
 import BetterSqlite3 from 'better-sqlite3'
 
-function stringifyObject(object) {
-    if (!object) return ''
-    return ' {' + Object.entries(object).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(', ') + '}'
+function toLocationName(location) {
+    const stringifyObject = object => Object.entries(object).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(' ')
+    return location.url
+        + (location.passthrough.headers ? ' {' + stringifyObject(location.passthrough.headers) + '}' : '')
 }
 
 function requestor(limit, retries, alert) {
@@ -31,12 +32,12 @@ function requestor(limit, retries, alert) {
             const attempt = number > 0 && number <= retries && retries > 1 ? ' (retrying' + (number > 1 ? `, attempt ${number}` : '') + '...)' : ''
             if (number === 1) alert({
                 destination: e.config.filename,
-                message: `${message}${attempt}`,
-                source: e.config.url + stringifyObject(e.config.passthrough.headers),
+                source: toLocationName(e.config),
+                message: `${message}${attempt}`
             })
             else alert({
                 destination: e.config.filename,
-                source: e.config.url + stringifyObject(e.config.passthrough.headers),
+                source: toLocationName(e.config),
                 message: `${message}${attempt}`
             })
             return 5 * 1000
@@ -90,11 +91,12 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
         const existingFile = checkFile ? await FSExtra.pathExists(`${depository}/${filename}`) : false
         const existingCached = checkCache && !existingFile ? await cache.getResponse.get({ name }) : false
         if (checkCache && existingFile && !existingCached) cache.addResponse.run({ name })
+        const locationName = toLocationName({ url, passthrough: { headers } })
         const existing = existingFile || existingCached
         if (existing) {
             alert({
                 destination: filename,
-                source: url + stringifyObject(headers),
+                source: locationName,
                 message: 'exists'
             })
             return true
@@ -102,7 +104,7 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
         try {
             alert({
                 destination: filename,
-                source: url + stringifyObject(headers),
+                source: locationName,
                 message: 'requesting...'
             })
             const response = await request(filename, {
@@ -111,18 +113,18 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
                 responseType: 'arraybuffer',
                 passthrough: { headers }
             })
-            alert({
-                destination: filename,
-                source: url + stringifyObject(headers),
-                message: 'done'
-            })
             await FSExtra.writeFile(`${depository}/${filename}`, response.data)
             if (checkCache) cache.addResponse.run({ name })
+            alert({
+                destination: filename,
+                source: locationName,
+                message: 'done'
+            })
         }
         catch (e) {
             alert({
                 destination: filename,
-                source: url + stringifyObject(headers),
+                source: locationName,
                 message: e.message.toLowerCase(),
                 importance: 'error'
             })
