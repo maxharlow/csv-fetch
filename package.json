@@ -24,5 +24,9 @@
     },
     "bin": {
         "csv-fetch": "./bin.js"
+    },
+    "scripts": {
+        "postinstall": "[[ $SHELL == *zsh ]] && csv-fetch completion > /usr/local/share/zsh/site-functions/_csv-fetch",
+        "postuninstall": "[[ $SHELL == *zsh ]] && rm -f /usr/local/share/zsh/site-functions/_csv-fetch"
     }
 }

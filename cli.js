@@ -9,6 +9,7 @@ async function setup() {
         .parserConfiguration({ 'flatten-duplicate-arrays': false })
         .usage('Usage: csv-fetch <url-column> <name-column> <depository> <filename>')
         .wrap(null)
+        .completion('completion', false)
         .option('s', { alias: 'suffix', type: 'string', describe: 'A suffix to add to the name of each file, such as an extension' })
         .option('h', { alias: 'headers', type: 'string', array: true, describe: 'A space-separated list of headers to be sent with the requests' })
         .option('l', { alias: 'limit', type: 'number', nargs: 1, describe: 'Limit the number of requests made per second' })
@@ -18,6 +19,7 @@ async function setup() {
         .option('V', { alias: 'verbose', type: 'boolean', describe: 'Print every request made', default: false })
         .help('?').alias('?', 'help')
         .version().alias('v', 'version')
+    if (instructions.argv['get-yargs-completions']) Process.exit(0)
     if (instructions.argv._.length === 0) instructions.showHelp().exit(0)
     const {
         _: [urlColumn, nameColumn, depository, filename],
