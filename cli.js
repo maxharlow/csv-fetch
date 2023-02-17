@@ -10,6 +10,7 @@ async function setup() {
         .usage('Usage: csv-fetch <url-column> <name-column> <depository> <filename>')
         .wrap(null)
         .completion('completion', false)
+        .option('d', { alias: 'subdirectories', type: 'string', describe: 'A column to be used to create subdirectories' })
         .option('s', { alias: 'suffix', type: 'string', describe: 'A suffix to add to the name of each file, such as an extension' })
         .option('h', { alias: 'headers', type: 'string', array: true, describe: 'A space-separated list of headers to be sent with the requests' })
         .option('l', { alias: 'limit', type: 'number', nargs: 1, describe: 'Limit the number of requests made per second' })
@@ -23,6 +24,7 @@ async function setup() {
     if (instructions.argv._.length === 0) instructions.showHelp().exit(0)
     const {
         _: [urlColumn, nameColumn, depository, filename],
+        subdirectories,
         suffix,
         headers,
         limit,
@@ -44,7 +46,7 @@ async function setup() {
     const total = await csvFetch.length(filename)
     const { alert, progress, finalise } = cliRenderer(instructions.argv.verbose)
     try {
-        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, checkFile, checkCache, alert)
+        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, subdirectories, suffix, headerlist, limit, retries, checkFile, checkCache, alert)
         await process
             .each(progress('Working...', total))
             .whenEnd()

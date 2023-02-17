@@ -63,7 +63,7 @@ async function caching() {
     }
 }
 
-async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, limit, retries, checkFile, checkCache, alert) {
+async function fetcher(urlColumn, nameColumn, depository, subdirectories, suffix, headerlist, limit, retries, checkFile, checkCache, alert) {
     const request = requestor(limit, retries, alert)
     const cache = checkCache ? await caching() : null
     return async row => {
@@ -88,7 +88,8 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
         const headerslist = headerlist ? headerlist.map(headerset => Object.fromEntries(headerset.map(header => header.split(/: ?/)))) : []
         const headers = headerslist ? headerslist[row.line % headerslist.length] : {}
         const filename = name + (suffix || '')
-        const existingFile = checkFile ? await FSExtra.pathExists(`${depository}/${filename}`) : false
+        const target = depository + (subdirectories ? `/${row.data[subdirectories]}` : '') + `/${filename}`
+        const existingFile = checkFile ? await FSExtra.pathExists(target) : false
         const existingCached = checkCache && !existingFile ? await cache.getResponse.get({ name }) : false
         if (checkCache && existingFile && !existingCached) cache.addResponse.run({ name })
         const locationName = toLocationName({ url, passthrough: { headers } })
@@ -113,7 +114,8 @@ async function fetcher(urlColumn, nameColumn, depository, suffix, headerlist, li
                 responseType: 'arraybuffer',
                 passthrough: { headers }
             })
-            await FSExtra.writeFile(`${depository}/${filename}`, response.data)
+            if (subdirectories) await FSExtra.ensureDir(`${depository}/${row.data[subdirectories]}`)
+            await FSExtra.writeFile(target, response.data)
             if (checkCache) cache.addResponse.run({ name })
             alert({
                 destination: filename,
@@ -147,9 +149,9 @@ function length(filename) {
     return source(filename).reduce(a => a + 1, 0)
 }
 
-async function run(filename, urlColumn, nameColumn, depository, suffix, headers, limit, retries, checkFile, checkCache, alert) {
+async function run(filename, urlColumn, nameColumn, depository, subdirectories, suffix, headers, limit, retries, checkFile, checkCache, alert) {
     await FSExtra.ensureDir(depository)
-    const fetch = await fetcher(urlColumn, nameColumn, depository, suffix, headers, limit, retries, checkFile, checkCache, alert)
+    const fetch = await fetcher(urlColumn, nameColumn, depository, subdirectories, suffix, headers, limit, retries, checkFile, checkCache, alert)
     return source(filename).each(fetch)
 }
 
