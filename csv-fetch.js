@@ -44,8 +44,8 @@ function requestor(limit, retries, alert) {
         }
     })
     AxiosRateLimit(instance, {
-        maxRequests: limit, // so limit is number of requests per second
-        perMilliseconds: 1 * 1000
+        maxRequests: limit >= 1 ? limit : 1,
+        perMilliseconds: limit >= 1 ? 1000 : (1 / limit) * 1000
     })
     return (filename, request) => instance({ ...request, filename })
 }
