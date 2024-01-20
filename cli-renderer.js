@@ -66,12 +66,12 @@ function draw(linesDrawn) {
         ...Object.values(alerts).map(details => {
             const width = Process.stderr.columns - (details.destination ? SimpleWCSWidth.wcswidth(details.destination) + 4 : 0)
             const messageTruncated = truncate(width, details.message.replaceAll('\n', ' '))
-            const sourceTruncated = truncate(width - messageTruncated.length, details.source)
+            const sourceTruncated = details.source ? truncate(width - messageTruncated.length, details.source) : null
             const elements = [
                 details.destination,
                 details.destination ? Chalk.blue(' ← ') : null,
                 sourceTruncated,
-                ' ',
+                details.source ? ' ' : null,
                 details.importance === 'error' ? Chalk.red.bold(messageTruncated)
                     : details.message.endsWith('...') ? Chalk.yellow(messageTruncated)
                     : details.message.toLowerCase().startsWith('done') ? Chalk.green(messageTruncated)
@@ -130,11 +130,15 @@ function setup(verbose) {
         if (finalisation) return
         if (!verbose && !details.importance) return
         if (!doRedisplay) console.error([details.destination, (details.destination ? '←' : null), details.source, details.message].filter(x => x).join(' '))
-        const key = details.source
+        const key = details.source || details.message
         alerts[key] = details
         isDirty = true
     }
-    const finalise = mode => {
+    const finalise = (mode, e) => {
+        if (e) {
+            alert({ message: `Fatal error: ${e.message}`, importance: 'error' })
+            if (verbose) e.stack.split('\n').slice(1).forEach((line, i) => alert({ message: line, importance: 'error' }))
+        }
         if (!doRedisplay && !finalisation) formatFinalisation(mode).map(text => console.error(text))
         finalisation = mode
         if (doRedisplay) return new Promise(resolve => events.on('finished', resolve))
