@@ -21,6 +21,14 @@ function requestor(limit, retries, alert) {
         return e.message // request not made
     }
     const instance = Axios.create({ timeout })
+    instance.interceptors.request.use(location => {
+        alert({
+            destination: location.filename,
+            source: toLocationName(location),
+            message: 'requesting...'
+        })
+        return location
+    }, e => Promise.reject(e))
     AxiosRetry(instance, {
         retries,
         shouldResetTimeout: true,
@@ -103,11 +111,6 @@ async function fetcher(urlColumn, nameColumn, depository, subdirectories, suffix
             return true
         }
         try {
-            alert({
-                destination: filename,
-                source: locationName,
-                message: 'requesting...'
-            })
             const response = await request(filename, {
                 url,
                 headers,
