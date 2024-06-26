@@ -1,7 +1,7 @@
 {
     "name": "csv-fetch",
     "description": "Download a list of URLs from a CSV file.",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "author": "Max Harlow <contact@maxharlow.com> (https://maxharlow.com/)",
     "license": "Apache-2.0",
     "type": "module",
