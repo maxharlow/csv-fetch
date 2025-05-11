@@ -71,9 +71,18 @@ async function caching() {
     }
 }
 
-async function fetcher(urlColumn, nameColumn, depository, subdirectories, suffix, headerlist, limit, retries, checkFile, checkCache, alert) {
+async function fetcher(urlColumn, nameColumn, depository, subdirectories, suffix, headerlist, authorisation, limit, retries, checkFile, checkCache, alert) {
     const request = requestor(limit, retries, alert)
     const cache = checkCache ? await caching() : null
+    const authorisationHeaders = authorisation ? authorisation.map(pair => ({ authorization: 'Basic ' + Buffer.from(pair).toString('base64') })) : {}
+    const authorisationRotated = (() => {
+        let next = 0
+        return () => {
+            const key = authorisationHeaders[next]
+            next = (next + 1) % authorisationHeaders.length
+            return key
+        }
+    })()
     return async row => {
         const name = row.data[nameColumn]
         if (!name) {
@@ -94,7 +103,10 @@ async function fetcher(urlColumn, nameColumn, depository, subdirectories, suffix
             return
         }
         const headerslist = headerlist ? headerlist.map(headerset => Object.fromEntries(headerset.map(header => header.split(/: ?/)))) : []
-        const headers = headerslist ? headerslist[row.line % headerslist.length] : {}
+        const headers = {
+            ...(headerslist ? headerslist[row.line % headerslist.length] : {}),
+            ...(authorisation ? authorisationRotated() : {})
+        }
         const filename = name + (suffix || '')
         const target = depository + (subdirectories ? `/${row.data[subdirectories]}` : '') + `/${filename}`
         const existingFile = checkFile ? await FSExtra.pathExists(target) : false
@@ -152,9 +164,9 @@ function length(filename) {
     return source(filename).reduce(a => a + 1, 0)
 }
 
-async function run(filename, urlColumn, nameColumn, depository, subdirectories, suffix, headers, limit, retries, checkFile, checkCache, alert) {
+async function run(filename, urlColumn, nameColumn, depository, subdirectories, suffix, headers, authorisation, limit, retries, checkFile, checkCache, alert) {
     await FSExtra.ensureDir(depository)
-    const fetch = await fetcher(urlColumn, nameColumn, depository, subdirectories, suffix, headers, limit, retries, checkFile, checkCache, alert)
+    const fetch = await fetcher(urlColumn, nameColumn, depository, subdirectories, suffix, headers, authorisation, limit, retries, checkFile, checkCache, alert)
     return source(filename).each(fetch)
 }
 

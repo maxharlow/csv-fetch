@@ -13,6 +13,7 @@ async function setup() {
         .option('d', { alias: 'subdirectories', type: 'string', describe: 'A column to be used to create subdirectories' })
         .option('s', { alias: 'suffix', type: 'string', describe: 'A suffix to add to the name of each file, such as an extension' })
         .option('h', { alias: 'headers', type: 'string', array: true, describe: 'A space-separated list of headers to be sent with the requests' })
+        .option('a', { alias: 'authorisation', type: 'string', array: true, describe: 'Specify basic authorisation credentials, as username:password' })
         .option('l', { alias: 'limit', type: 'number', nargs: 1, describe: 'Limit the number of requests made per second' })
         .option('r', { alias: 'retries', type: 'number', nargs: 1, describe: 'Number of times a request should be retried', default: 5 })
         .option('c', { alias: 'check-file', type: 'boolean', describe: 'Check for an existing file, and skip if so', default: false })
@@ -29,6 +30,7 @@ async function setup() {
             subdirectories,
             suffix,
             headers,
+            authorisation,
             limit,
             retries,
             checkFile,
@@ -46,7 +48,7 @@ async function setup() {
         })
         console.error('Starting up...')
         const total = await csvFetch.length(filename)
-        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, subdirectories, suffix, headerlist, limit, retries, checkFile, checkCache, alert)
+        const process = await csvFetch.run(filename, urlColumn, nameColumn, depository, subdirectories, suffix, headerlist, authorisation, limit, retries, checkFile, checkCache, alert)
         await process
             .each(progress('Working...', total))
             .whenEnd()
