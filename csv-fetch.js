@@ -9,7 +9,7 @@ import BetterSqlite3 from 'better-sqlite3'
 function toLocationName(location) {
     const stringifyObject = object => Object.entries(object).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(' ')
     return location.url
-        + (location.passthrough.headers ? ' {' + stringifyObject(location.passthrough.headers) + '}' : '')
+        + (Object.keys(location.passthrough.headers).length > 0 ? ' {' + stringifyObject(location.passthrough.headers) + '}' : '')
 }
 
 function requestor(limit, retries, alert) {
